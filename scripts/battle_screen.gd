@@ -101,6 +101,8 @@ func _platform(c: Vector2, rx: float) -> void:
 
 
 func _layout_arena() -> void:
+	if foe_icon == null or hero_icon == null or foe_info == null or hero_info == null:
+		return
 	var a := arena.size
 	foe_icon.size = foe_icon.custom_minimum_size
 	foe_icon.position = Vector2(a.x * 0.72, a.y * 0.33) - foe_icon.size / 2.0
