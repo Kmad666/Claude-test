@@ -50,7 +50,7 @@ func _ready() -> void:
 	for i in Game.players.size():
 		var p := Game.players[i]
 		var data := Game.class_data(p)
-		var t := Token.new(data["shape"], data["color"])
+		var t := Token.new(data["shape"], p["color"])
 		board.add_child(t)
 		tokens.append(t)
 	board.layout_changed.connect(_place_tokens)
@@ -450,7 +450,7 @@ func _build_hud() -> GridContainer:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		panel.add_child(row)
-		row.add_child(ShapeIcon.new(data["shape"], data["color"], 64))
+		row.add_child(ShapeIcon.new(data["shape"], p["color"], 64))
 		var info := VBoxContainer.new()
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info.add_theme_constant_override("separation", 0)

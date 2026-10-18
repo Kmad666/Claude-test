@@ -6,4 +6,6 @@ Every push to `main` runs a GitHub Actions workflow that downloads the latest st
 
 **Play:** https://kmad666.github.io/Claude-test/
 
+See [ROADMAP.md](ROADMAP.md) for the feature list.
+
 To open the project in the desktop editor, clone the repo and import `project.godot`.

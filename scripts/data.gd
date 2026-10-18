@@ -2,7 +2,12 @@ class_name Data
 extends RefCounted
 ## Static game content: hero classes, monsters, and skill-check events.
 
-static var CLASS_ORDER: Array[String] = ["Warrior", "Mage", "Rogue", "Cleric"]
+## Each player gets their own token color; the class decides the shape.
+static var PLAYER_COLORS: Array[Color] = [
+	Color(0.93, 0.30, 0.32), Color(0.30, 0.52, 0.98), Color(0.20, 0.75, 0.45), Color(0.98, 0.76, 0.20),
+]
+
+static var CLASS_ORDER: Array[String] = ["Warrior", "Mage"]
 
 static var CLASSES: Dictionary = {
 	"Warrior": {
@@ -29,32 +34,6 @@ static var CLASSES: Dictionary = {
 			{"name": "Arcane Blast", "kind": "attack", "power": 14, "acc": 60},
 			{"name": "Frost Hex", "kind": "weaken", "acc": 90},
 			{"name": "Mana Shield", "kind": "guard"},
-		],
-	},
-	"Rogue": {
-		"shape": "diamond",
-		"color": Color(0.20, 0.75, 0.45),
-		"hp": 24,
-		"stats": {"STR": 2, "DEX": 4, "INT": 1, "WIS": 0},
-		"blurb": "Quick hands, dirty tricks.",
-		"moves": [
-			{"name": "Stab", "kind": "attack", "power": 7, "acc": 95},
-			{"name": "Backstab", "kind": "attack", "power": 12, "acc": 70},
-			{"name": "Poison Dart", "kind": "poison", "power": 3, "acc": 90},
-			{"name": "Smoke Bomb", "kind": "guard"},
-		],
-	},
-	"Cleric": {
-		"shape": "circle",
-		"color": Color(0.98, 0.76, 0.20),
-		"hp": 26,
-		"stats": {"STR": 2, "DEX": 0, "INT": 1, "WIS": 4},
-		"blurb": "Heals, blesses, smites.",
-		"moves": [
-			{"name": "Smite", "kind": "attack", "power": 7, "acc": 90},
-			{"name": "Holy Light", "kind": "attack", "power": 10, "acc": 80},
-			{"name": "Bless", "kind": "buff"},
-			{"name": "Heal", "kind": "heal", "amount": 10, "uses": 2},
 		],
 	},
 }

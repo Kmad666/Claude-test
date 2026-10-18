@@ -40,7 +40,7 @@ func _card(cls: String) -> Button:
 	var data: Dictionary = Data.CLASSES[cls]
 	var tint: Color = data["color"]
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(0, 168)
+	b.custom_minimum_size = Vector2(0, 220)
 	b.add_theme_stylebox_override("normal", UI.box(UI.PAPER, 26, 4))
 	b.add_theme_stylebox_override("hover", UI.box(UI.PAPER.darkened(0.04), 26, 4))
 	b.add_theme_stylebox_override("pressed", UI.box(tint.lightened(0.55), 26, 6))
@@ -54,7 +54,7 @@ func _card(cls: String) -> Button:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(row)
 
-	row.add_child(ShapeIcon.new(data["shape"], tint, 132))
+	row.add_child(ShapeIcon.new(data["shape"], tint, 170))
 	var info := VBoxContainer.new()
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL

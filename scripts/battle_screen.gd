@@ -49,8 +49,8 @@ func _ready() -> void:
 	var foe_data := battle.monster
 	foe_icon = ShapeIcon.new(foe_data["shape"], foe_data["color"], 230)
 	arena.add_child(foe_icon)
-	var hero_data: Dictionary = Data.CLASSES[_hero_class()]
-	hero_icon = ShapeIcon.new(hero_data["shape"], hero_data["color"], 250)
+	var hero_data: Dictionary = Data.CLASSES[battle.player["cls"]]
+	hero_icon = ShapeIcon.new(hero_data["shape"], battle.player["color"], 250)
 	arena.add_child(hero_icon)
 
 	foe_info = _info_panel(battle.mon_name)
@@ -250,9 +250,3 @@ func _info_panel(title: String) -> PanelContainer:
 	panel.set_meta("hp", hp)
 	return panel
 
-
-func _hero_class() -> String:
-	for p in Game.players:
-		if p["name"] == battle.hero_name:
-			return p["cls"]
-	return "Warrior"

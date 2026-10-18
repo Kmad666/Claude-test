@@ -29,11 +29,11 @@ func _ready() -> void:
 		row.add_theme_constant_override("separation", 16)
 		panel.add_child(row)
 		row.add_child(UI.label(PLACES[i], 36))
-		row.add_child(ShapeIcon.new(data["shape"], data["color"], 90))
+		row.add_child(ShapeIcon.new(data["shape"], p["color"], 90))
 		var info := VBoxContainer.new()
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(info)
-		info.add_child(UI.label(p["name"], 32))
+		info.add_child(UI.label("%s (%s)" % [p["name"], p["cls"]], 32))
 		var score_line := "%d %s   %d Coins" % [Game.score(p), Game.score_name(), p["coins"]]
 		info.add_child(UI.label(score_line, 26, UI.INK.lightened(0.25)))
 		col.add_child(panel)

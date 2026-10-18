@@ -47,9 +47,13 @@ func _ready() -> void:
 func new_game(human_class: String) -> void:
 	players.clear()
 	players.append(_make_player("You", human_class, true))
-	for cls in Data.CLASS_ORDER:
-		if cls != human_class:
-			players.append(_make_player("Bot " + cls, cls, false))
+	# Three bots, alternating classes starting with the one you didn't pick.
+	var other := Data.CLASS_ORDER[(Data.CLASS_ORDER.find(human_class) + 1) % Data.CLASS_ORDER.size()]
+	var bot_classes: Array[String] = [other, human_class, other]
+	for k in bot_classes.size():
+		players.append(_make_player("Bot %d" % (k + 1), bot_classes[k], false))
+	for i in players.size():
+		players[i]["color"] = Data.PLAYER_COLORS[i % Data.PLAYER_COLORS.size()]
 	round_num = 1
 	_build_board()
 	bosses.clear()
