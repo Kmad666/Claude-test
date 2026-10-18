@@ -34,7 +34,8 @@ func _ready() -> void:
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(info)
 		info.add_child(UI.label(p["name"], 32))
-		info.add_child(UI.label("%d Crowns   %d Coins" % [p["crowns"], p["coins"]], 26, UI.INK.lightened(0.25)))
+		var score_line := "%d %s   %d Coins" % [Game.score(p), Game.score_name(), p["coins"]]
+		info.add_child(UI.label(score_line, 26, UI.INK.lightened(0.25)))
 		col.add_child(panel)
 
 	var spacer := Control.new()
@@ -47,6 +48,9 @@ func _ready() -> void:
 	if Game.autoplay:
 		for i in ranked.size():
 			var p := ranked[i]
-			print("%s %s (%s): %d crowns, %d coins" % [PLACES[i], p["name"], p["cls"], p["crowns"], p["coins"]])
-		print("AUTOPLAY_DONE")
+			print("%s %s (%s): %d %s, %d coins" % [
+				PLACES[i], p["name"], p["cls"], Game.score(p), Game.score_name(), p["coins"]
+			])
+		print("Bosses defeated: ", Game.bosses_defeated)
+		print("AUTOPLAY_DONE ", Game.mode)
 		get_tree().quit(0)

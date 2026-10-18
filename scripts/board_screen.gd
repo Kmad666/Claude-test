@@ -65,6 +65,7 @@ func _run() -> void:
 	_place_tokens()
 	if Game.autoplay:
 		_check_layout()
+	await _intro()
 	while Game.round_num <= Game.ROUNDS:
 		_refresh_hud()
 		board.set_center("", "Round %d" % Game.round_num)
@@ -72,6 +73,8 @@ func _run() -> void:
 			current = i
 			_refresh_hud()
 			await _take_turn(i)
+		if Game.is_hunt():
+			await _move_bosses()
 		Game.round_num += 1
 	board.set_center("", "")
 	_say("The final round is over!")
@@ -90,13 +93,23 @@ func _take_turn(i: int) -> void:
 
 	var steps: int = await _roll_die(6)
 	board.set_center(str(steps), "%s moves" % p["name"])
+	var blocked := {}
 	for _step in steps:
 		p["pos"] = (int(p["pos"]) + 1) % Game.BOARD_SIZE
 		await _hop(i)
-		if p["pos"] == Game.shrine_index:
+		if Game.is_hunt():
+			blocked = Game.boss_at(int(p["pos"]))
+			if not blocked.is_empty():
+				break
+		elif p["pos"] == Game.shrine_index:
 			await _visit_shrine(p)
 	board.set_center("", "Round %d" % Game.round_num)
-	await _resolve_space(p)
+	if blocked.is_empty():
+		await _resolve_space(p)
+	else:
+		_say("%s runs into the %s!" % [p["name"], blocked["name"]])
+		await _pause(1.0)
+		await _boss_battle(p, blocked)
 	_refresh_hud()
 	await _pause(0.9)
 
@@ -192,6 +205,69 @@ func _battle(p: Dictionary) -> void:
 	await _pause(1.2)
 
 
+# ---------------------------------------------------------------- monster hunt
+
+func _intro() -> void:
+	if Game.is_hunt():
+		_say("Monster Hunt! Mini-bosses roam the board. Run into one to fight it. Damage sticks, and the final blow earns a Trophy.")
+	else:
+		_say("Crown Collector! Pass the gold star with %d coins to buy a Crown. Most Crowns wins." % Game.CROWN_COST)
+	await _pause(2.5)
+
+
+func _move_bosses() -> void:
+	_say("The monsters are on the move...")
+	await _pause(0.8)
+	for boss in Game.bosses.duplicate():
+		var steps := Game.rng.randi_range(1, 3)
+		for _step in steps:
+			boss["pos"] = (int(boss["pos"]) + 1) % Game.BOARD_SIZE
+			board.queue_redraw()
+			await _pause(0.25)
+		for i in Game.players.size():
+			var p := Game.players[i]
+			if p["pos"] == boss["pos"] and Game.bosses.has(boss):
+				current = i
+				_refresh_hud()
+				_say("The %s ambushes %s!" % [boss["name"], p["name"]])
+				await _pause(1.0)
+				await _boss_battle(p, boss)
+
+
+func _boss_battle(p: Dictionary, boss: Dictionary) -> void:
+	var start_hp: int = boss["hp"]
+	var fight: Battle
+	if p["human"]:
+		var screen := BattleScreen.new()
+		screen.setup(p, boss, Game.autoplay)
+		add_child(screen)
+		await screen.finished
+		fight = screen.battle
+		screen.queue_free()
+	else:
+		fight = Battle.new(p, boss, Game.rng)
+		fight.simulate()
+	var dealt := start_hp - fight.mon_hp
+	boss["hp"] = fight.mon_hp
+	var bounty := dealt / 2
+	Game.add_coins(p, bounty)
+	if fight.mon_hp <= 0:
+		p["trophies"] = int(p["trophies"]) + 1
+		Game.add_coins(p, 10)
+		var fresh := Game.respawn_boss(boss)
+		board.queue_redraw()
+		_refresh_hud()
+		_say("%s slays the %s! A Trophy and %d coins! A %s appears elsewhere..." % [p["name"], boss["name"], bounty + 10, fresh["name"]])
+	elif fight.hero_hp <= 0:
+		var lost := -Game.add_coins(p, -4)
+		_say("%s dealt %d damage (+%d coins) but was knocked out. -%d coins." % [p["name"], dealt, bounty, lost])
+	else:
+		_say("%s dealt %d damage (+%d coins). The %s has %d HP left." % [p["name"], dealt, bounty, boss["name"], boss["hp"]])
+	board.queue_redraw()
+	_refresh_hud()
+	await _pause(1.6)
+
+
 # ---------------------------------------------------------------- helpers
 
 ## Self-test: the board and the action buttons must fit on screen.
@@ -283,10 +359,10 @@ func _build_hud() -> GridContainer:
 
 
 func _refresh_hud() -> void:
-	round_label.text = "Round %d / %d" % [mini(Game.round_num, Game.ROUNDS), Game.ROUNDS]
+	round_label.text = "%s  |  Round %d / %d" % [Game.MODE_NAMES[Game.mode], mini(Game.round_num, Game.ROUNDS), Game.ROUNDS]
 	for i in Game.players.size():
 		var p := Game.players[i]
-		hud_stats[i].text = "Coins %d   Crowns %d" % [p["coins"], p["crowns"]]
+		hud_stats[i].text = "Coins %d   %s %d" % [p["coins"], Game.score_name(), Game.score(p)]
 		var active := i == current
 		var border_color := UI.GOLD.darkened(0.2) if active else UI.INK
 		var bg := Color(1.0, 0.95, 0.75) if active else UI.PAPER

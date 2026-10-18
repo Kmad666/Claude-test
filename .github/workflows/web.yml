@@ -44,11 +44,15 @@ jobs:
       - name: Play-test a full bot game
         run: |
           set +e
-          timeout 300 godot --headless --fixed-fps 60 -- --autoplay > smoke.log 2>&1
+          : > smoke.log
+          for MODE in crowns hunt; do
+            timeout 300 godot --headless --fixed-fps 60 -- --autoplay --mode=$MODE >> smoke.log 2>&1
+          done
           set -e
           sed 's/\x1b\[[0-9;]*m//g' smoke.log > smoke_clean.log
           cat smoke_clean.log
-          if grep -qE "SCRIPT ERROR|Parse Error|Invalid |LAYOUT ERROR" smoke_clean.log || ! grep -q AUTOPLAY_DONE smoke_clean.log; then
+          echo "::notice title=Play-test results::$(grep -E '^(1st|2nd|3rd|4th|Bosses|AUTOPLAY)' smoke_clean.log | sed ':a;N;$!ba;s/\n/%0A/g')"
+          if grep -qE "SCRIPT ERROR|Parse Error|Invalid |LAYOUT ERROR" smoke_clean.log || ! grep -q "AUTOPLAY_DONE crowns" smoke_clean.log || ! grep -q "AUTOPLAY_DONE hunt" smoke_clean.log; then
             MSG=$( { grep -E -A5 "SCRIPT ERROR|Parse Error|ERROR|Invalid " smoke_clean.log | head -n 45; echo "--- last lines:"; tail -n 8 smoke_clean.log; } | sed ':a;N;$!ba;s/\n/%0A/g')
             echo "::error title=Play-test failed::$MSG"
             exit 1

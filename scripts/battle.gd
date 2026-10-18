@@ -25,6 +25,7 @@ var poison_turns := 0
 var poison_dmg := 0
 
 var turn := 0
+var max_turns := MAX_TURNS
 var fled := false
 var rng: RandomNumberGenerator
 
@@ -39,8 +40,10 @@ func _init(player: Dictionary, foe: Dictionary, random: RandomNumberGenerator) -
 		uses.append(int(m.get("uses", -1)))
 	monster = foe
 	mon_name = foe["name"]
-	mon_max = foe["hp"]
-	mon_hp = mon_max
+	mon_max = int(foe.get("max", foe["hp"]))
+	mon_hp = int(foe["hp"])
+	if foe.has("max"):
+		max_turns = Game.BOSS_TURNS
 	mon_atk = foe["atk"]
 	rng = random
 
@@ -138,9 +141,9 @@ func monster_turn() -> Array[String]:
 		out.append("But it missed!")
 	weak = false
 	guard = false
-	if turn >= MAX_TURNS and not is_over():
+	if turn >= max_turns and not is_over():
 		fled = true
-		out.append("The %s loses interest and wanders off." % mon_name)
+		out.append("The %s breaks away and lumbers off." % mon_name)
 	return out
 
 

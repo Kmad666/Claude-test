@@ -10,7 +10,13 @@ func _ready() -> void:
 	if Game.autoplay:
 		Engine.time_scale = 10.0
 		var cls: String = Data.CLASS_ORDER[Game.rng.randi_range(0, Data.CLASS_ORDER.size() - 1)]
-		print("AUTOPLAY_START as ", cls)
+		print("AUTOPLAY_START ", Game.mode, " as ", cls)
+		var mode := Game.mode
+		show_setup()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		(screen as SetupScreen).check_layout()
+		Game.mode = mode
 		start_game(cls)
 	else:
 		show_setup()

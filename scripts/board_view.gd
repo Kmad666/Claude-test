@@ -98,10 +98,14 @@ func _draw() -> void:
 		var fs := 22 if glyph == "GO" else 34
 		draw_string(font, c + Vector2(-27, fs * 0.36), glyph, HORIZONTAL_ALIGNMENT_CENTER, 54, fs, Color.WHITE)
 
-	# Crown Shrine, nudged toward the middle of the board.
-	var shrine := positions[Game.shrine_index]
-	var inward := (size / 2.0 - shrine).normalized() * 58.0
-	Shapes.draw(self, "star", shrine + inward, 26, UI.GOLD, UI.INK, 4.0)
+	if Game.is_hunt():
+		for boss in Game.bosses:
+			_draw_boss(boss, font)
+	else:
+		# Crown Shrine, nudged toward the middle of the board.
+		var shrine := positions[Game.shrine_index]
+		var inward := (size / 2.0 - shrine).normalized() * 58.0
+		Shapes.draw(self, "star", shrine + inward, 26, UI.GOLD, UI.INK, 4.0)
 
 	# Center: dice result or round banner.
 	var mid := size / 2.0
@@ -113,3 +117,21 @@ func _draw() -> void:
 		var at_sub := Vector2(0, mid.y + 100)
 		draw_string_outline(font, at_sub, center_sub, HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, 8, UI.PAPER)
 		draw_string(font, at_sub, center_sub, HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, UI.INK)
+
+
+## A mini-boss sits just inside the ring next to its space, with a name and HP bar.
+func _draw_boss(boss: Dictionary, font: Font) -> void:
+	var spot := positions[int(boss["pos"]) % positions.size()]
+	var c := spot + (size / 2.0 - spot).normalized() * 74.0
+	draw_line(spot, c, UI.INK, 4.0, true)
+	draw_circle(c + Vector2(0, 6), 38, Color(0, 0, 0, 0.2))
+	Shapes.draw(self, boss["shape"], c, 36, boss["color"], UI.INK, 5.0, true)
+	var w := 84.0
+	var ratio := clampf(float(boss["hp"]) / maxf(1.0, float(boss["max"])), 0.0, 1.0)
+	var bar := Rect2(c + Vector2(-w / 2.0, -58), Vector2(w, 12))
+	draw_rect(bar, Color(0.85, 0.85, 0.88))
+	draw_rect(Rect2(bar.position, Vector2(w * ratio, 12)), Color(0.92, 0.25, 0.25))
+	draw_rect(bar, UI.INK, false, 2.0)
+	var at := c + Vector2(-70, -66)
+	draw_string_outline(font, at, boss["name"], HORIZONTAL_ALIGNMENT_CENTER, 140, 20, 6, UI.PAPER)
+	draw_string(font, at, boss["name"], HORIZONTAL_ALIGNMENT_CENTER, 140, 20, UI.INK)

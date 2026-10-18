@@ -68,6 +68,15 @@ static var MONSTERS: Array[Dictionary] = [
 	{"name": "Wyvern", "shape": "star", "color": Color(0.70, 0.35, 0.85), "hp": 26, "atk": 8, "tier": 2},
 ]
 
+static var BOSSES: Array[Dictionary] = [
+	{"name": "Minotaur", "shape": "square", "color": Color(0.62, 0.36, 0.22), "hp": 40, "atk": 6},
+	{"name": "Hydra", "shape": "star", "color": Color(0.20, 0.62, 0.55), "hp": 46, "atk": 5},
+	{"name": "Cyclops", "shape": "circle", "color": Color(0.85, 0.60, 0.45), "hp": 44, "atk": 7},
+	{"name": "Manticore", "shape": "triangle", "color": Color(0.90, 0.40, 0.25), "hp": 38, "atk": 8},
+	{"name": "Basilisk", "shape": "diamond", "color": Color(0.45, 0.70, 0.20), "hp": 42, "atk": 7},
+	{"name": "Chimera", "shape": "hexagon", "color": Color(0.80, 0.30, 0.55), "hp": 48, "atk": 6},
+]
+
 static var EVENTS: Array[Dictionary] = [
 	{
 		"title": "Rope Bridge", "stat": "DEX", "dc": 12,
