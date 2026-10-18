@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install latest stable Godot and export templates
         env:
@@ -41,11 +41,20 @@ jobs:
       - name: Export web build
         run: |
           mkdir -p build/web
-          godot --headless --export-release "Web" build/web/index.html
-          test -f build/web/index.html
+          set +e
+          godot --headless --import > import.log 2>&1
+          godot --headless --export-release "Web" build/web/index.html > export.log 2>&1
+          set -e
+          cat import.log export.log
+          if [ ! -f build/web/index.html ]; then
+            # Surface the error as annotations so they show in the run summary.
+            tail -n 15 import.log | sed 's/^/::error title=import::/'
+            tail -n 25 export.log | sed 's/^/::error title=export::/'
+            exit 1
+          fi
           ls -la build/web
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: build/web
 
