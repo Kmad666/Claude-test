@@ -64,7 +64,7 @@ func _ready() -> void:
 
 	var log_panel := UI.panel()
 	log_panel.custom_minimum_size = Vector2(0, 150)
-	log_label = UI.label("", 30)
+	log_label = UI.label("", 30, UI.INK, HORIZONTAL_ALIGNMENT_LEFT, true)
 	log_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	log_panel.add_child(log_label)
 	col.add_child(log_panel)
@@ -118,6 +118,8 @@ func _layout_arena() -> void:
 func _run() -> void:
 	await get_tree().process_frame
 	_layout_arena()
+	if Game.autoplay and moves_grid.get_global_rect().end.y > get_viewport_rect().end.y + 1.0:
+		printerr("LAYOUT ERROR: battle move buttons are off screen")
 	await _say(["A wild %s appears!" % battle.mon_name])
 	while not battle.is_over():
 		var idx: int

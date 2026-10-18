@@ -44,7 +44,7 @@ func _card(cls: String) -> Button:
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(info)
 	info.add_child(UI.label(cls, 42))
-	info.add_child(UI.label(data["blurb"], 26))
+	info.add_child(UI.label(data["blurb"], 26, UI.INK, HORIZONTAL_ALIGNMENT_LEFT, true))
 	var stats: Dictionary = data["stats"]
 	var line := "HP %d   STR %d  DEX %d  INT %d  WIS %d" % [
 		data["hp"], stats["STR"], stats["DEX"], stats["INT"], stats["WIS"]

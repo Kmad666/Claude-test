@@ -48,7 +48,7 @@ jobs:
           set -e
           sed 's/\x1b\[[0-9;]*m//g' smoke.log > smoke_clean.log
           cat smoke_clean.log
-          if grep -qE "SCRIPT ERROR|Parse Error|Invalid " smoke_clean.log || ! grep -q AUTOPLAY_DONE smoke_clean.log; then
+          if grep -qE "SCRIPT ERROR|Parse Error|Invalid |LAYOUT ERROR" smoke_clean.log || ! grep -q AUTOPLAY_DONE smoke_clean.log; then
             MSG=$( { grep -E -A5 "SCRIPT ERROR|Parse Error|ERROR|Invalid " smoke_clean.log | head -n 45; echo "--- last lines:"; tail -n 8 smoke_clean.log; } | sed ':a;N;$!ba;s/\n/%0A/g')
             echo "::error title=Play-test failed::$MSG"
             exit 1

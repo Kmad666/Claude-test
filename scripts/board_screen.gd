@@ -36,7 +36,7 @@ func _ready() -> void:
 
 	var msg_panel := UI.panel()
 	msg_panel.custom_minimum_size = Vector2(0, 170)
-	message = UI.label("", 28)
+	message = UI.label("", 28, UI.INK, HORIZONTAL_ALIGNMENT_LEFT, true)
 	message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	msg_panel.add_child(message)
 	col.add_child(msg_panel)
@@ -63,6 +63,8 @@ func _ready() -> void:
 func _run() -> void:
 	await get_tree().process_frame
 	_place_tokens()
+	if Game.autoplay:
+		_check_layout()
 	while Game.round_num <= Game.ROUNDS:
 		_refresh_hud()
 		board.set_center("", "Round %d" % Game.round_num)
@@ -192,6 +194,17 @@ func _battle(p: Dictionary) -> void:
 
 # ---------------------------------------------------------------- helpers
 
+## Self-test: the board and the action buttons must fit on screen.
+func _check_layout() -> void:
+	var screen := get_viewport_rect()
+	if actions.get_global_rect().end.y > screen.end.y + 1.0:
+		printerr("LAYOUT ERROR: action buttons are off screen (", actions.get_global_rect(), " vs ", screen, ")")
+	if board.size.y < 300.0:
+		printerr("LAYOUT ERROR: board is squashed to ", board.size)
+	for panel in hud_panels:
+		if panel.size.y > 160.0:
+			printerr("LAYOUT ERROR: scoreboard panel too tall: ", panel.size)
+
 func _say(text: String) -> void:
 	message.text = text
 
@@ -257,6 +270,7 @@ func _build_hud() -> GridContainer:
 		panel.add_child(row)
 		row.add_child(ShapeIcon.new(data["shape"], data["color"], 64))
 		var info := VBoxContainer.new()
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info.add_theme_constant_override("separation", 0)
 		row.add_child(info)
 		info.add_child(UI.label(p["name"], 26))

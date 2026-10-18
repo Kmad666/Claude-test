@@ -43,13 +43,15 @@ static func button(text: String, color: Color = BLUE, font_size: int = 32) -> Bu
 
 static func label(
 	text: String, font_size: int = 30, color: Color = INK,
-	align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT
+	align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, wrap: bool = false
 ) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", font_size)
 	l.add_theme_color_override("font_color", color)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if wrap:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.horizontal_alignment = align
 	return l
 
