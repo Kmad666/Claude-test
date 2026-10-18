@@ -1,0 +1,60 @@
+name: Build and deploy web version
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install latest stable Godot and export templates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(gh api repos/godotengine/godot/releases/latest --jq .tag_name)
+          echo "Using Godot $VERSION"
+          BASE="https://github.com/godotengine/godot/releases/download/$VERSION"
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o godot.zip "$BASE/Godot_v${VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${VERSION}_linux.x86_64" godot
+          chmod +x godot
+          curl -fsSL -o templates.tpz "$BASE/Godot_v${VERSION}_export_templates.tpz"
+          unzip -q templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates
+          mv templates ~/.local/share/godot/export_templates/"${VERSION/-/.}"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Export web build
+        run: |
+          mkdir -p build/web
+          godot --headless --export-release "Web" build/web/index.html
+          test -f build/web/index.html
+          ls -la build/web
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
