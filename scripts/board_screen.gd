@@ -76,6 +76,7 @@ func _run() -> void:
 			await _take_turn(i)
 		if Game.is_hunt():
 			await _move_bosses()
+		await _minigame()
 		Game.round_num += 1
 	board.set_center("", "")
 	_say("The final round is over!")
@@ -102,6 +103,7 @@ func _take_turn(i: int) -> void:
 	var steps: int = await _roll_movement(p, boots)
 	board.set_center(str(steps), "%s moves" % p["name"])
 	var blocked := {}
+	var shrine_done := false
 	for _step in steps:
 		p["pos"] = (int(p["pos"]) + 1) % Game.BOARD_SIZE
 		await _hop(i)
@@ -109,7 +111,8 @@ func _take_turn(i: int) -> void:
 			blocked = Game.boss_at(int(p["pos"]))
 			if not blocked.is_empty():
 				break
-		elif p["pos"] == Game.shrine_index:
+		elif not shrine_done and Game.near_shrine(int(p["pos"])):
+			shrine_done = true
 			await _visit_shrine(p)
 	board.set_center("", "Round %d" % Game.round_num)
 	if blocked.is_empty():
@@ -285,11 +288,23 @@ func _battle(p: Dictionary) -> void:
 
 # ---------------------------------------------------------------- monster hunt
 
+func _minigame() -> void:
+	var kind: String = MinigameScreen.KINDS[Game.rng.randi_range(0, MinigameScreen.KINDS.size() - 1)]
+	_say("Minigame time!")
+	await _pause(0.8)
+	var screen := MinigameScreen.new()
+	screen.setup(kind)
+	add_child(screen)
+	await screen.finished
+	screen.queue_free()
+	_refresh_hud()
+
+
 func _intro() -> void:
 	if Game.is_hunt():
 		_say("Monster Hunt! Mini-bosses roam the board. Run into one to fight it. Damage sticks, and the final blow earns a Trophy.")
 	else:
-		_say("Crown Collector! Pass the gold star with %d coins to buy a Crown. Most Crowns wins." % Game.CROWN_COST)
+		_say("Crown Collector! Pass within one space of the gold star with %d coins to buy a Crown. Most Crowns wins." % Game.CROWN_COST)
 	await _pause(2.5)
 
 

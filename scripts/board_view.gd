@@ -106,6 +106,10 @@ func _draw() -> void:
 		for boss in Game.bosses:
 			_draw_boss(boss, font)
 	else:
+		# Crown Shrine reach: gold rings on the shrine space and its neighbours.
+		for offset in [-1, 0, 1]:
+			var ring := positions[posmod(Game.shrine_index + offset, positions.size())]
+			draw_arc(ring, 34, 0, TAU, 32, UI.GOLD, 7.0, true)
 		# Crown Shrine, nudged toward the middle of the board.
 		var shrine := positions[Game.shrine_index]
 		var inward := (size / 2.0 - shrine).normalized() * 58.0

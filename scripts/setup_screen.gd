@@ -83,7 +83,7 @@ func _set_mode(m: String) -> void:
 	if m == Game.MODE_HUNT:
 		mode_hint.text = "Team up against roaming mini-bosses. The final blow earns a Trophy."
 	else:
-		mode_hint.text = "Race around the board and buy Crowns at the moving shrine."
+		mode_hint.text = "Race around the board and buy Crowns near the moving shrine."
 
 
 ## Self-test: every hero card must be fully on screen.

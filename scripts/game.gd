@@ -2,7 +2,7 @@ extends Node
 ## Global state for one match. Registered as the "Game" autoload.
 
 const ROUNDS := 8
-const CROWN_COST := 20
+const CROWN_COST := 15
 const BOARD_SIZE := 24
 const START_COINS := 10
 const BOSS_COUNT := 2
@@ -255,6 +255,12 @@ func move_shrine() -> void:
 	while next == shrine_index or next == 0:
 		next = rng.randi_range(1, BOARD_SIZE - 1)
 	shrine_index = next
+
+
+## Crown Shrine reach: the shrine's space and the spaces on either side.
+func near_shrine(pos: int) -> bool:
+	var d := absi(pos - shrine_index)
+	return mini(d, BOARD_SIZE - d) <= 1
 
 
 func standings() -> Array[Dictionary]:
