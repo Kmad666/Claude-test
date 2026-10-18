@@ -48,8 +48,9 @@ jobs:
           cat import.log export.log
           if [ ! -f build/web/index.html ]; then
             # Surface the error as annotations so they show in the run summary.
-            tail -n 15 import.log | sed 's/^/::error title=import::/'
-            tail -n 25 export.log | sed 's/^/::error title=export::/'
+            ls ~/.local/share/godot/export_templates/ > templates.txt
+            MSG=$( { echo "templates: $(cat templates.txt)"; cat import.log export.log | sed 's/\x1b\[[0-9;]*m//g' | grep -iE "error|fail|warn|template|missing|invalid" | head -n 30; } | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Godot export failed::$MSG"
             exit 1
           fi
           ls -la build/web
