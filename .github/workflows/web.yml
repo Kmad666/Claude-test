@@ -49,7 +49,7 @@ jobs:
           if [ ! -f build/web/index.html ]; then
             # Surface the error as annotations so they show in the run summary.
             ls ~/.local/share/godot/export_templates/ > templates.txt
-            MSG=$( { echo "templates: $(cat templates.txt)"; cat import.log export.log | sed 's/\x1b\[[0-9;]*m//g' | grep -iE "error|fail|warn|template|missing|invalid" | head -n 30; } | sed ':a;N;$!ba;s/\n/%0A/g')
+            MSG=$( { echo "templates: $(cat templates.txt)"; cat import.log export.log | sed 's/\x1b\[[0-9;]*m//g' | grep -iE -A6 "error|fail|warn|template|missing|invalid" | head -n 40; } | sed ':a;N;$!ba;s/\n/%0A/g')
             echo "::error title=Godot export failed::$MSG"
             exit 1
           fi
