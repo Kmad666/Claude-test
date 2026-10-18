@@ -55,6 +55,12 @@ jobs:
           fi
           ls -la build/web
 
+      - name: Enable GitHub Pages if needed
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+        with:
+          enablement: true
+
       - uses: actions/upload-pages-artifact@v4
         with:
           path: build/web
