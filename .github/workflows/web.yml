@@ -38,11 +38,27 @@ jobs:
           mv templates ~/.local/share/godot/export_templates/"${VERSION/-/.}"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
+      - name: Import project
+        run: godot --headless --import 2>&1 | tail -n 40
+
+      - name: Play-test a full bot game
+        run: |
+          set +e
+          timeout 300 godot --headless --fixed-fps 60 -- --autoplay > smoke.log 2>&1
+          set -e
+          sed 's/\x1b\[[0-9;]*m//g' smoke.log > smoke_clean.log
+          cat smoke_clean.log
+          if grep -qE "SCRIPT ERROR|Parse Error|Invalid " smoke_clean.log || ! grep -q AUTOPLAY_DONE smoke_clean.log; then
+            MSG=$( { grep -E -A5 "SCRIPT ERROR|Parse Error|ERROR|Invalid " smoke_clean.log | head -n 45; echo "--- last lines:"; tail -n 8 smoke_clean.log; } | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Play-test failed::$MSG"
+            exit 1
+          fi
+
       - name: Export web build
         run: |
           mkdir -p build/web
           set +e
-          godot --headless --import > import.log 2>&1
+          touch import.log
           godot --headless --export-release "Web" build/web/index.html > export.log 2>&1
           set -e
           cat import.log export.log
