@@ -14,6 +14,7 @@ var actions: HBoxContainer
 var tokens: Array[Token] = []
 var hud_panels: Array[PanelContainer] = []
 var hud_stats: Array[Label] = []
+var hud_names: Array[Label] = []
 var current := 0
 
 
@@ -86,12 +87,19 @@ func _take_turn(i: int) -> void:
 	var p := Game.players[i]
 	var auto := Game.is_auto(p)
 	_say("%s's turn." % p["name"])
+	var boots := false
 	if auto:
 		await _pause(0.7)
+		boots = Game.use_item(p, "boots")
 	else:
-		await _choose(["Roll the die!"], [UI.ACTION])
+		var opts: Array[String] = ["Roll the die!"]
+		if Game.item_count(p, "boots") > 0:
+			opts.append("Swift Boots (2 dice)")
+		var pick: int = await _choose(opts, [UI.ACTION, UI.SUPPORT])
+		if pick == 1:
+			boots = Game.use_item(p, "boots")
 
-	var steps: int = await _roll_die(6)
+	var steps: int = await _roll_movement(p, boots)
 	board.set_center(str(steps), "%s moves" % p["name"])
 	var blocked := {}
 	for _step in steps:
@@ -112,6 +120,31 @@ func _take_turn(i: int) -> void:
 		await _boss_battle(p, blocked)
 	_refresh_hud()
 	await _pause(0.9)
+
+
+func _roll_movement(p: Dictionary, boots: bool) -> int:
+	if boots:
+		_say("%s laces up the Swift Boots!" % p["name"])
+		var a: int = await _roll_die(6)
+		var b: int = await _roll_die(6)
+		board.set_center(str(a + b), "%d + %d" % [a, b])
+		await _pause(0.6)
+		return a + b
+	var steps: int = await _roll_die(6)
+	if steps <= 3 and int(p["coins"]) >= Game.REROLL_COST:
+		var reroll := false
+		if Game.is_auto(p):
+			reroll = steps <= 2 and int(p["coins"]) >= 12
+		else:
+			_say("You rolled a %d. Pay %d coins to reroll?" % [steps, Game.REROLL_COST])
+			var pick: int = await _choose(["Move %d" % steps, "Reroll (%d coins)" % Game.REROLL_COST], [UI.ACTION, UI.BLUE])
+			reroll = pick == 1
+		if reroll:
+			Game.add_coins(p, -Game.REROLL_COST)
+			_refresh_hud()
+			_say("%s pays %d coins to reroll!" % [p["name"], Game.REROLL_COST])
+			steps = await _roll_die(6)
+	return steps
 
 
 func _visit_shrine(p: Dictionary) -> void:
@@ -150,7 +183,28 @@ func _resolve_space(p: Dictionary) -> void:
 			await _skill_check(p)
 		"battle":
 			await _battle(p)
+		"shop":
+			await _shop(p)
 	_refresh_hud()
+
+
+func _shop(p: Dictionary) -> void:
+	if p["human"]:
+		_say("A wandering merchant waves you over.")
+		var screen := ShopScreen.new()
+		screen.setup(p, Game.autoplay)
+		add_child(screen)
+		await screen.finished
+		screen.queue_free()
+		_say("You leave the shop.")
+	else:
+		var bought := Game.bot_shop(p, Game.shop_offers(p))
+		if bought.is_empty():
+			_say("%s browses the shop but buys nothing." % p["name"])
+		else:
+			_say("%s buys %s." % [p["name"], ", ".join(bought)])
+	_refresh_hud()
+	await _pause(1.0)
 
 
 func _skill_check(p: Dictionary) -> void:
@@ -166,6 +220,25 @@ func _skill_check(p: Dictionary) -> void:
 	var roll: int = await _roll_die(20)
 	var total := roll + bonus
 	board.set_center(str(total), "%d + %d %s" % [roll, bonus, stat])
+	if roll != 20 and total < dc and int(p["coins"]) >= Game.REROLL_COST:
+		var reroll := false
+		if Game.is_auto(p):
+			reroll = int(p["coins"]) >= 12 and total + 3 < dc
+		elif total + 3 < dc or Game.item_count(p, "charm") == 0:
+			_say("%d vs %d. Failed! Pay %d coins to reroll?" % [total, dc, Game.REROLL_COST])
+			var pick: int = await _choose(["Accept", "Reroll (%d coins)" % Game.REROLL_COST], [UI.BLUE, UI.ACTION])
+			reroll = pick == 1
+		if reroll:
+			Game.add_coins(p, -Game.REROLL_COST)
+			_refresh_hud()
+			roll = await _roll_die(20)
+			total = roll + bonus
+			board.set_center(str(total), "%d + %d %s" % [roll, bonus, stat])
+	if roll != 20 and total < dc and total + 3 >= dc and Game.use_item(p, "charm"):
+		total += 3
+		board.set_center(str(total), "Lucky Charm +3!")
+		_say("The Lucky Charm glows!")
+		await _pause(1.0)
 	if roll == 20:
 		Game.add_coins(p, 10)
 		_say("Natural 20! %s +10 coins." % ev["win"])
@@ -193,16 +266,21 @@ func _battle(p: Dictionary) -> void:
 	else:
 		result = Battle.new(p, foe, Game.rng).simulate()
 	var reward := 5 + int(foe["tier"]) * 3
+	var xp := 2
 	match result:
 		Battle.WIN:
+			xp = 6 + int(foe["tier"]) * 3
 			Game.add_coins(p, reward)
-			_say("%s defeats the %s! +%d coins." % [p["name"], foe["name"], reward])
+			_say("%s defeats the %s! +%d coins, +%d XP." % [p["name"], foe["name"], reward, xp])
 		Battle.LOSE:
 			var lost := -Game.add_coins(p, -4)
-			_say("%s is knocked out by the %s. -%d coins." % [p["name"], foe["name"], lost])
+			_say("%s is knocked out by the %s. -%d coins, +%d XP." % [p["name"], foe["name"], lost, xp])
 		_:
-			_say("The %s wanders off. No harm done." % foe["name"])
+			xp = 3
+			_say("The %s wanders off. +%d XP." % [foe["name"], xp])
+	_refresh_hud()
 	await _pause(1.2)
+	await _award_xp(p, xp)
 
 
 # ---------------------------------------------------------------- monster hunt
@@ -266,6 +344,17 @@ func _boss_battle(p: Dictionary, boss: Dictionary) -> void:
 	board.queue_redraw()
 	_refresh_hud()
 	await _pause(1.6)
+	await _award_xp(p, dealt / 2 + (10 if fight.mon_hp <= 0 else 2))
+
+
+func _award_xp(p: Dictionary, amount: int) -> void:
+	var gained := Game.add_xp(p, amount)
+	_refresh_hud()
+	if gained > 0:
+		board.set_center("Lv %d" % p["level"], "LEVEL UP!")
+		_say("%s reached Level %d! Max HP and attack power are up." % [p["name"], p["level"]])
+		await _pause(1.6)
+		board.set_center("", "Round %d" % Game.round_num)
 
 
 # ---------------------------------------------------------------- helpers
@@ -278,6 +367,8 @@ func _check_layout() -> void:
 	if board.size.y < 300.0:
 		printerr("LAYOUT ERROR: board is squashed to ", board.size)
 	for panel in hud_panels:
+		if panel.get_global_rect().end.x > screen.end.x + 1.0:
+			printerr("LAYOUT ERROR: scoreboard runs off the right edge: ", panel.get_global_rect())
 		if panel.size.y > 160.0:
 			printerr("LAYOUT ERROR: scoreboard panel too tall: ", panel.size)
 
@@ -349,7 +440,9 @@ func _build_hud() -> GridContainer:
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info.add_theme_constant_override("separation", 0)
 		row.add_child(info)
-		info.add_child(UI.label(p["name"], 26))
+		var name_label := UI.label(p["name"], 24)
+		info.add_child(name_label)
+		hud_names.append(name_label)
 		var stats := UI.label("", 22, UI.INK.lightened(0.25))
 		info.add_child(stats)
 		grid.add_child(panel)
@@ -363,6 +456,7 @@ func _refresh_hud() -> void:
 	for i in Game.players.size():
 		var p := Game.players[i]
 		hud_stats[i].text = "Coins %d   %s %d" % [p["coins"], Game.score_name(), Game.score(p)]
+		hud_names[i].text = "%s  Lv%d" % [p["name"], p["level"]]
 		var active := i == current
 		var border_color := UI.GOLD.darkened(0.2) if active else UI.INK
 		var bg := Color(1.0, 0.95, 0.75) if active else UI.PAPER

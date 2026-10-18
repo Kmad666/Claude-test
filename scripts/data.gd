@@ -127,3 +127,15 @@ static var EVENTS: Array[Dictionary] = [
 		"lose": "The fairies play a prank on your purse.",
 	},
 ]
+
+
+static var ITEMS: Dictionary = {
+	"potion": {"name": "Potion", "price": 5, "desc": "Heal 12 HP in battle"},
+	"whetstone": {"name": "Whetstone", "price": 6, "desc": "+3 attack power next battle"},
+	"charm": {"name": "Lucky Charm", "price": 6, "desc": "Auto +3 to save a failed check"},
+	"boots": {"name": "Swift Boots", "price": 4, "desc": "Roll 2 dice on one turn"},
+}
+
+static var STAT_GEAR: Dictionary = {
+	"STR": "Iron Gauntlets", "DEX": "Swift Gloves", "INT": "Sage's Tome", "WIS": "Holy Charm",
+}

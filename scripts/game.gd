@@ -8,6 +8,16 @@ const START_COINS := 10
 const BOSS_COUNT := 2
 const BOSS_TURNS := 6
 
+const MAX_LEVEL := 5
+## XP needed to go from level N to N+1 is XP_LEVELS[N].
+const XP_LEVELS: Array[int] = [0, 10, 24, 42, 64]
+const HP_PER_LEVEL := 3
+const GEAR_PRICE := 12
+const ARMOR_HP := 4
+const MAX_GEAR := 3
+const REROLL_COST := 3
+const POTION_HEAL := 12
+
 const MODE_CROWNS := "crowns"
 const MODE_HUNT := "hunt"
 const MODE_NAMES := {MODE_CROWNS: "Crown Collector", MODE_HUNT: "Monster Hunt"}
@@ -121,7 +131,104 @@ func class_data(p: Dictionary) -> Dictionary:
 
 
 func stat_bonus(p: Dictionary, stat: String) -> int:
-	return int(class_data(p)["stats"][stat])
+	return int(class_data(p)["stats"][stat]) + int(p["gear"][stat])
+
+
+# ---------------------------------------------------------------- progression
+
+func max_hp(p: Dictionary) -> int:
+	return int(class_data(p)["hp"]) + (int(p["level"]) - 1) * HP_PER_LEVEL + int(p["armor"]) * ARMOR_HP
+
+
+func power_bonus(p: Dictionary) -> int:
+	return int(p["level"]) - 1
+
+
+## Adds XP and returns how many levels were gained.
+func add_xp(p: Dictionary, amount: int) -> int:
+	p["xp"] = int(p["xp"]) + amount
+	var gained := 0
+	while int(p["level"]) < MAX_LEVEL and int(p["xp"]) >= XP_LEVELS[int(p["level"])]:
+		p["level"] = int(p["level"]) + 1
+		gained += 1
+	return gained
+
+
+func xp_to_next(p: Dictionary) -> int:
+	var lvl := int(p["level"])
+	return 0 if lvl >= MAX_LEVEL else XP_LEVELS[lvl] - int(p["xp"])
+
+
+func item_count(p: Dictionary, key: String) -> int:
+	return int(p["items"][key])
+
+
+func use_item(p: Dictionary, key: String) -> bool:
+	if item_count(p, key) <= 0:
+		return false
+	p["items"][key] = item_count(p, key) - 1
+	return true
+
+
+# ---------------------------------------------------------------- shop
+
+## What a shop offers this visit: all consumables, Armor, and one random stat upgrade.
+func shop_offers(p: Dictionary) -> Array[Dictionary]:
+	var offers: Array[Dictionary] = []
+	for key in Data.ITEMS:
+		var item: Dictionary = Data.ITEMS[key]
+		offers.append({
+			"kind": "item", "key": key, "name": item["name"], "price": item["price"],
+			"desc": "%s (have %d)" % [item["desc"], item_count(p, key)],
+		})
+	if int(p["armor"]) < MAX_GEAR:
+		offers.append({
+			"kind": "armor", "key": "armor", "name": "Sturdy Armor", "price": GEAR_PRICE,
+			"desc": "+%d max HP, permanent" % ARMOR_HP,
+		})
+	var stats: Array[String] = []
+	for stat in Data.STAT_GEAR:
+		if int(p["gear"][stat]) < MAX_GEAR:
+			stats.append(stat)
+	if not stats.is_empty():
+		var stat := stats[rng.randi_range(0, stats.size() - 1)]
+		offers.append({
+			"kind": "stat", "key": stat, "name": Data.STAT_GEAR[stat], "price": GEAR_PRICE,
+			"desc": "+1 %s for skill checks, permanent" % stat,
+		})
+	return offers
+
+
+func buy(p: Dictionary, offer: Dictionary) -> bool:
+	var price: int = offer["price"]
+	if int(p["coins"]) < price:
+		return false
+	add_coins(p, -price)
+	match offer["kind"]:
+		"item":
+			p["items"][offer["key"]] = item_count(p, offer["key"]) + 1
+		"armor":
+			p["armor"] = int(p["armor"]) + 1
+		"stat":
+			p["gear"][offer["key"]] = int(p["gear"][offer["key"]]) + 1
+	return true
+
+
+## Bots keep a reserve for Crowns, then buy gear first and a spare potion.
+func bot_shop(p: Dictionary, offers: Array[Dictionary]) -> Array[String]:
+	var bought: Array[String] = []
+	var reserve := 0 if is_hunt() else CROWN_COST
+	for offer in offers:
+		var wanted := false
+		match offer["kind"]:
+			"armor", "stat":
+				wanted = true
+			"item":
+				wanted = offer["key"] == "potion" and item_count(p, "potion") == 0
+		if wanted and int(p["coins"]) - int(offer["price"]) >= reserve:
+			if buy(p, offer):
+				bought.append(offer["name"])
+	return bought
 
 
 func add_coins(p: Dictionary, amount: int) -> int:
@@ -164,11 +271,17 @@ func _make_player(player_name: String, cls: String, human: bool) -> Dictionary:
 	return {
 		"name": player_name, "cls": cls, "human": human,
 		"pos": 0, "coins": START_COINS, "crowns": 0, "trophies": 0,
+		"level": 1, "xp": 0, "armor": 0,
+		"items": {"potion": 1, "whetstone": 0, "charm": 0, "boots": 0},
+		"gear": {"STR": 0, "DEX": 0, "INT": 0, "WIS": 0},
 	}
 
 
 func _build_board() -> void:
-	var pattern: Array[String] = ["coin", "battle", "coin", "event", "hazard", "coin", "event", "battle"]
+	var pattern: Array[String] = [
+		"coin", "battle", "coin", "event", "hazard", "shop",
+		"coin", "event", "battle", "coin", "hazard", "shop",
+	]
 	spaces.clear()
 	for i in BOARD_SIZE:
 		spaces.append(pattern[i % pattern.size()])

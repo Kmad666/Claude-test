@@ -6,6 +6,7 @@ const MAX_TURNS := 12
 const WIN := 1
 const DRAW := 0
 const LOSE := -1
+const POTION := 100
 
 var hero_name := ""
 var hero_hp := 0
@@ -14,6 +15,10 @@ var moves: Array[Dictionary] = []
 var uses: Array[int] = []
 var guard := false
 var buff := false
+var player: Dictionary
+var power_bonus := 0
+## Lines shown when the battle opens (e.g. a Whetstone being used).
+var intro: Array[String] = []
 
 var monster: Dictionary
 var mon_name := ""
@@ -30,11 +35,16 @@ var fled := false
 var rng: RandomNumberGenerator
 
 
-func _init(player: Dictionary, foe: Dictionary, random: RandomNumberGenerator) -> void:
-	var data: Dictionary = Data.CLASSES[player["cls"]]
-	hero_name = player["name"]
-	hero_max = data["hp"]
+func _init(hero: Dictionary, foe: Dictionary, random: RandomNumberGenerator) -> void:
+	var data: Dictionary = Data.CLASSES[hero["cls"]]
+	player = hero
+	hero_name = hero["name"]
+	hero_max = Game.max_hp(hero)
 	hero_hp = hero_max
+	power_bonus = Game.power_bonus(hero)
+	if Game.use_item(hero, "whetstone"):
+		power_bonus += 3
+		intro.append("%s's blade is freshly sharpened! (+3 power)" % hero_name)
 	for m in data["moves"]:
 		moves.append(m)
 		uses.append(int(m.get("uses", -1)))
@@ -57,7 +67,7 @@ func describe(idx: int) -> String:
 	var text := ""
 	match m["kind"]:
 		"attack":
-			text = "PWR %d  |  %d%%" % [m["power"], m["acc"]]
+			text = "PWR %d  |  %d%%" % [int(m["power"]) + power_bonus, m["acc"]]
 		"heal":
 			text = "Heal %d HP" % m["amount"]
 		"guard":
@@ -73,8 +83,17 @@ func describe(idx: int) -> String:
 	return text
 
 
+func potions() -> int:
+	return Game.item_count(player, "potion")
+
+
 func use_move(idx: int) -> Array[String]:
 	turn += 1
+	if idx == POTION:
+		Game.use_item(player, "potion")
+		var healed := mini(hero_max, hero_hp + Game.POTION_HEAL) - hero_hp
+		hero_hp += healed
+		return ["%s drank a Potion!" % hero_name, "Recovered %d HP." % healed]
 	var m := moves[idx]
 	var out: Array[String] = ["%s used %s!" % [hero_name, m["name"]]]
 	if uses[idx] > 0:
@@ -82,7 +101,7 @@ func use_move(idx: int) -> Array[String]:
 	match m["kind"]:
 		"attack":
 			if _hits(m["acc"]):
-				var dmg: int = m["power"]
+				var dmg: int = int(m["power"]) + power_bonus
 				if buff:
 					dmg = int(ceil(dmg * 1.5))
 					buff = false
@@ -180,8 +199,11 @@ func bot_pick() -> int:
 					support.append(i)
 			_:
 				support.append(i)
-	if heal_idx >= 0 and hero_hp < hero_max * 0.45:
-		return heal_idx
+	if hero_hp < hero_max * 0.45:
+		if heal_idx >= 0:
+			return heal_idx
+		if potions() > 0:
+			return POTION
 	if not support.is_empty() and rng.randf() < 0.25:
 		return support[rng.randi_range(0, support.size() - 1)]
 	return attacks[rng.randi_range(0, attacks.size() - 1)]

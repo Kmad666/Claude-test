@@ -36,6 +36,8 @@ static func space_color(kind: String) -> Color:
 			return Color(0.66, 0.34, 0.95)
 		"battle":
 			return Color(0.98, 0.50, 0.12)
+		"shop":
+			return Color(0.08, 0.66, 0.62)
 		_:
 			return Color(0.15, 0.75, 0.40)
 
@@ -50,6 +52,8 @@ static func space_glyph(kind: String) -> String:
 			return "?"
 		"battle":
 			return "!"
+		"shop":
+			return "$"
 		_:
 			return "GO"
 

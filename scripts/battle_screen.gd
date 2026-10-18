@@ -57,7 +57,7 @@ func _ready() -> void:
 	foe_bar = foe_info.get_meta("bar")
 	foe_hp_label = foe_info.get_meta("hp")
 	arena.add_child(foe_info)
-	hero_info = _info_panel(battle.hero_name)
+	hero_info = _info_panel("%s  Lv %d" % [battle.hero_name, battle.player["level"]])
 	hero_bar = hero_info.get_meta("bar")
 	hero_hp_label = hero_info.get_meta("hp")
 	arena.add_child(hero_info)
@@ -118,9 +118,20 @@ func _layout_arena() -> void:
 func _run() -> void:
 	await get_tree().process_frame
 	_layout_arena()
-	if Game.autoplay and moves_grid.get_global_rect().end.y > get_viewport_rect().end.y + 1.0:
-		printerr("LAYOUT ERROR: battle move buttons are off screen")
+	if Game.autoplay:
+		# Lay out the full move menu (with a potion) once to check it fits.
+		_show_moves()
+		var pot := UI.button("Potion x1\nHeal 12 HP", UI.BLUE, 26)
+		pot.custom_minimum_size = Vector2(0, 112)
+		moves_grid.add_child(pot)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if moves_grid.get_global_rect().end.y > get_viewport_rect().end.y + 1.0:
+			printerr("LAYOUT ERROR: battle move buttons are off screen: ", moves_grid.get_global_rect())
+		_clear_moves()
 	await _say(["A wild %s appears!" % battle.mon_name])
+	if not battle.intro.is_empty():
+		await _say(battle.intro)
 	while not battle.is_over():
 		var idx: int
 		if auto:
@@ -168,6 +179,11 @@ func _show_moves() -> void:
 		b.disabled = not battle.can_use(i)
 		b.pressed.connect(func() -> void: _move_picked.emit(i))
 		moves_grid.add_child(b)
+	if battle.potions() > 0:
+		var pot := UI.button("Potion x%d\nHeal %d HP" % [battle.potions(), Game.POTION_HEAL], UI.BLUE, 26)
+		pot.custom_minimum_size = Vector2(0, 112)
+		pot.pressed.connect(func() -> void: _move_picked.emit(Battle.POTION))
+		moves_grid.add_child(pot)
 
 
 func _clear_moves() -> void:
